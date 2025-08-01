@@ -1,35 +1,23 @@
 // Library for WASM canvas glue
 
-interface CanvasInfo {
-    canvas: HTMLCanvasElement;
-    context: CanvasRenderingContext2D;
-}
+import { decodeWasmString, encodeWasmString } from './wasm-utils.js';
+import { getWasmExports, WasmExports } from './wasm-utils.js';
 
-export interface WasmExports extends WebAssembly.Exports {
-    memory: WebAssembly.Memory;
+
+export interface CanvasExports extends WasmExports {
     on_mouse_move(canvasId: number, x: number, y: number): void;
     on_mouse_down(canvasId: number, x: number, y: number): void;
     on_mouse_up(canvasId: number, x: number, y: number): void;
 }
 
-let WASM_CANVAS: WasmExports;
+interface CanvasInfo {
+    canvas: HTMLCanvasElement;
+    context: CanvasRenderingContext2D;
+}
+
 const CANVAS_REGISTRY: Map<number, CanvasInfo> = new Map();
 
-function decodeWasmString(ptr: number, len: number): string {
-    const bytes = new Uint8Array(WASM_CANVAS.memory.buffer, ptr, len);
-    return new TextDecoder("utf-8").decode(bytes);
-}
-
-function encodeWasmString(str: string): { ptr: number, len: number } {
-    const encoder = new TextEncoder();
-    const bytes = encoder.encode(str);
-    const ptr = WASM_CANVAS.memory.grow(Math.ceil(bytes.length / 65536));
-    const memoryBuffer = new Uint8Array((globalThis as any).WASM_CANVAS.memory.buffer);
-    memoryBuffer.set(bytes, ptr);
-    return { ptr, len: bytes.length };
-}
-
-function createCanvasImports() {
+export function createCanvasImports() {
     return {
         register_canvas(namePtr: number, nameLen: number, canvasId: number) {
             const name = decodeWasmString(namePtr, nameLen);
@@ -37,13 +25,16 @@ function createCanvasImports() {
             const context = canvas.getContext('2d')! as CanvasRenderingContext2D;
             CANVAS_REGISTRY.set(canvasId, { canvas, context });
             canvas.addEventListener('mousemove', (event) => {
-                WASM_CANVAS.on_mouse_move(canvasId, event.offsetX, event.offsetY);
+                let expo = getWasmExports() as CanvasExports;
+                expo.on_mouse_move(canvasId, event.offsetX, event.offsetY);
             });
             canvas.addEventListener('mousedown', (event) => {
-                WASM_CANVAS.on_mouse_down(canvasId, event.offsetX, event.offsetY);
+                let expo = getWasmExports() as CanvasExports;
+                expo.on_mouse_down(canvasId, event.offsetX, event.offsetY);
             });
             canvas.addEventListener('mouseup', (event) => {
-                WASM_CANVAS.on_mouse_up(canvasId, event.offsetX, event.offsetY);
+                let expo = getWasmExports() as CanvasExports;
+                expo.on_mouse_up(canvasId, event.offsetX, event.offsetY);
             });
         },
         // --- Canvas Dimensions ---
@@ -114,30 +105,4 @@ function createCanvasImports() {
     };
 }
 
-function createConsoleImports() {
-    return {
-        log:   (ptr: number, len: number) => { console.log("[WASM]", decodeWasmString(ptr, len));   },
-        error: (ptr: number, len: number) => { console.error("[WASM]", decodeWasmString(ptr, len)); },
-    };
-}
 
-function createBrowserImports() {
-    return {
-        alert:    (ptr: number, len: number) => { window.alert(decodeWasmString(ptr, len)); },
-        time_now: (): number => performance.now(),
-        random:   (): number => Math.random(),
-    };
-}
-
-// WASM_CANVAS is set by the application when it loads the WASM module
-export function setWasmExports(exports: WasmExports): void {
-    WASM_CANVAS = exports;
-}
-
-export function createWasmImports() {
-    return {
-        Browser: createBrowserImports(),
-        Canvas: createCanvasImports(),
-        Console: createConsoleImports(),
-    };
-}

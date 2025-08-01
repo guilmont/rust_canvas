@@ -3,10 +3,7 @@
         "target": "ES2022",
         "module": "ES2022",
         "rootDir": "./",
-        "outDir": "../frontend",
-
-        "incremental": true,
-        "tsBuildInfoFile": "./project.tsbuildinfo",
+        "outDir": "../target/ts_dist",
 
         "strict": true,                              // Enable all strict type-checking options.
         "skipLibCheck": true,                        // Skip type checking .d.ts files.

@@ -1,15 +1,7 @@
 // Example-specific WASM loader
-// @ts-ignore
-import { createCanvasWasmImports, setCanvasWasmExports } from './canvas-wasm.js';
-export async function loadExampleWasm(wasmPath) {
-    const wasmModule = await WebAssembly.instantiateStreaming(fetch(wasmPath), {
-        ...createCanvasWasmImports()
-    });
-    const exports = wasmModule.instance.exports;
-    setCanvasWasmExports(exports);
-    return exports;
-}
+import { loadWasm } from './wasm-utils.js';
+import { createCanvasImports } from './canvas-wasm.js';
 document.addEventListener('DOMContentLoaded', async () => {
-    const wasmExports = await loadExampleWasm('./canvas_example.wasm');
+    const wasmExports = await loadWasm('./canvas_example.wasm', { Canvas: createCanvasImports() });
     wasmExports.my_function();
 });
