@@ -20,7 +20,7 @@ example:
 	tsc --project ts/tsconfig.json
 	tsc --project examples/ts/tsconfig.json
 
-	cp target/wasm32-unknown-unknown/release/examples/canvas_example.wasm $(EXAMPLE_PATH)/web_canvas.wasm
+	cp target/wasm32-unknown-unknown/release/examples/canvas_example.wasm $(EXAMPLE_PATH)/canvas_example.wasm
 	cp frontend/canvas-wasm.js $(EXAMPLE_PATH)/canvas-wasm.js
 
 # Clean build artifacts
@@ -30,7 +30,7 @@ clean:
 	rm -rf frontend/
 	rm -rf ${EXAMPLE_PATH}/*.js
 	rm -rf ${EXAMPLE_PATH}/*.js.map
-	rm -f $(EXAMPLE_PATH)/web_canvas.wasm
+	rm -f $(EXAMPLE_PATH)/canvas_example.wasm
 	rm -f ts/*.tsbuildinfo
 
 # Check Rust code

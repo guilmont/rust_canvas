@@ -5,16 +5,12 @@ interface CanvasInfo {
     context: CanvasRenderingContext2D;
 }
 
-interface WasmExports extends WebAssembly.Exports {
+export interface WasmExports extends WebAssembly.Exports {
     memory: WebAssembly.Memory;
     on_mouse_move(canvasId: number, x: number, y: number): void;
     on_mouse_down(canvasId: number, x: number, y: number): void;
     on_mouse_up(canvasId: number, x: number, y: number): void;
-
-
-    my_function(): void;
 }
-
 
 let WASM_CANVAS: WasmExports;
 const CANVAS_REGISTRY: Map<number, CanvasInfo> = new Map();
@@ -133,17 +129,15 @@ function createBrowserImports() {
     };
 }
 
-export async function loadCanvasWasm(wasmPath: string): Promise<void> {
-    const wasmModule = await WebAssembly.instantiateStreaming(
-        fetch(wasmPath),
-        {
-            Browser: createBrowserImports(),
-            Canvas: createCanvasImports(),
-            Console: createConsoleImports(),
-        }
-    );
+// WASM_CANVAS is set by the application when it loads the WASM module
+export function setWasmExports(exports: WasmExports): void {
+    WASM_CANVAS = exports;
+}
 
-    WASM_CANVAS = wasmModule.instance.exports as WasmExports;
-
-    WASM_CANVAS.my_function();
+export function createWasmImports() {
+    return {
+        Browser: createBrowserImports(),
+        Canvas: createCanvasImports(),
+        Console: createConsoleImports(),
+    };
 }

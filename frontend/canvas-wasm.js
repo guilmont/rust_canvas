@@ -107,12 +107,14 @@ function createBrowserImports() {
         random: () => Math.random(),
     };
 }
-export async function loadCanvasWasm(wasmPath) {
-    const wasmModule = await WebAssembly.instantiateStreaming(fetch(wasmPath), {
+// WASM_CANVAS is set by the application when it loads the WASM module
+export function setWasmExports(exports) {
+    WASM_CANVAS = exports;
+}
+export function createWasmImports() {
+    return {
         Browser: createBrowserImports(),
         Canvas: createCanvasImports(),
         Console: createConsoleImports(),
-    });
-    WASM_CANVAS = wasmModule.instance.exports;
-    WASM_CANVAS.my_function();
+    };
 }
