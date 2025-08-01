@@ -1,1 +1,0 @@
-/home/gmonteir/web_canvas/target/wasm32-unknown-unknown/release/web_canvas.wasm: /home/gmonteir/web_canvas/src/browser.rs /home/gmonteir/web_canvas/src/canvas.rs /home/gmonteir/web_canvas/src/console.rs /home/gmonteir/web_canvas/src/lib.rs
