@@ -9,6 +9,7 @@ interface CanvasExports extends WasmExports {
     on_mouse_down(canvasId: number, x: number, y: number): void;
     on_mouse_up(canvasId: number, x: number, y: number): void;
     on_animation_frame(canvasId: number, elapsed: number): void;
+    on_key_down(canvasId: number, keyCode: number): void;
 }
 
 interface CanvasInfo {
@@ -39,6 +40,12 @@ export function getCanvasImports() {
                 let expo = getWasmExports() as CanvasExports;
                 expo.on_mouse_up(canvasId, event.offsetX, event.offsetY);
             });
+            // Ensure canvas is focusable for keyboard events
+            canvas.tabIndex = 0;
+            canvas.addEventListener('keydown', (event) => {
+                let expo = getWasmExports() as CanvasExports;
+                expo.on_key_down(canvasId, getKeyCode(event.key));
+            }, true);
         },
 
         // --- Animation Loop ---
@@ -136,3 +143,26 @@ export function getCanvasImports() {
 }
 
 
+function getKeyCode(key: string): number {
+    switch (key) {
+        case "ArrowLeft":  return 37;
+        case "ArrowUp":    return 38;
+        case "ArrowRight": return 39;
+        case "ArrowDown":  return 40;
+        case "Escape":     return 27;
+        case "Enter":      return 13;
+        case "Tab":        return 9;
+        case "Backspace":  return 8;
+        case "Delete":     return 46;
+        case "Shift":      return 16;
+        case "Control":    return 17;
+        case "Alt":        return 18;
+        case "Meta":       return 91;
+        case "CapsLock":   return 20;
+        case "Space":
+        case " ":          return 32;
+        default:
+            if (key.length !== 1) { throw new Error(`Unsupported key event: ${key}`); }
+            return key.charCodeAt(0);
+    }
+}

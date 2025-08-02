@@ -23,9 +23,9 @@ struct Paddle {
 struct PongGame {
     ball: Ball,
     paddle: Paddle,
-    mouse_x: f32,
     score: u32,
     game_over: bool,
+    elapsed_time: f32,
 }
 
 impl PongGame {
@@ -50,9 +50,9 @@ impl PongGame {
                 width: 100.0,
                 height: 15.0,
             },
-            mouse_x: canvas_width / 2.0,
             score: 0,
             game_over: false,
+            elapsed_time: 0.0,
         }
     }
 
@@ -69,9 +69,6 @@ impl PongGame {
 
     fn update(&mut self, canvas: &canvas::Canvas, dt: f32) {
         if self.game_over { return; }
-
-        // Update paddle position based on mouse
-        self.paddle.pos.x = self.mouse_x - self.paddle.width / 2.0;
 
         // Keep paddle within bounds
         if self.paddle.pos.x < 0.0 {
@@ -158,7 +155,7 @@ impl PongGame {
 
 impl canvas::EventHandler for PongGame {
     fn on_mouse_move(&mut self, _canvas: &canvas::Canvas, x: f32, _y: f32) {
-        self.mouse_x = x;
+        self.paddle.pos.x = x - self.paddle.width / 2.0;
     }
 
     fn on_mouse_up(&mut self, canvas: &canvas::Canvas, _x: f32, _y: f32) {
@@ -168,8 +165,19 @@ impl canvas::EventHandler for PongGame {
     }
 
     fn on_animation_frame(&mut self, canvas: &canvas::Canvas, elapsed: f32) {
+        self.elapsed_time = elapsed;
         self.update(canvas, elapsed);
         self.draw(canvas);
+    }
+
+    fn on_key_down(&mut self, canvas: &canvas::Canvas, key_code: u32) {
+        // Adjust speed based on elapsed time. We can move twice the width of the canvas per second
+        let speed = 2.0 * canvas.width() * self.elapsed_time;
+        if key_code == 37 {
+            self.paddle.pos.x = f32::max(self.paddle.pos.x - speed, 0.0);
+        } else if key_code == 39 {
+            self.paddle.pos.x = f32::min(self.paddle.pos.x + speed, canvas.width() - self.paddle.width / 2.0);
+        }
     }
 }
 

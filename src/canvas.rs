@@ -35,6 +35,7 @@ pub trait EventHandler {
     fn on_mouse_down(&mut self, _canvas: &Canvas, _x: f32, _y: f32) {}
     fn on_mouse_up(&mut self, _canvas: &Canvas, _x: f32, _y: f32) {}
     fn on_animation_frame(&mut self, _canvas: &Canvas, _elapsed: f32) {}
+    fn on_key_down(&mut self, _canvas: &Canvas, _key_code: u32) {}
 }
 
 /// Canvas object that encapsulates canvas operations ///////////////////////////////////
@@ -266,6 +267,18 @@ pub extern "C" fn on_animation_frame(canvas_id: u32, elapsed: f32) {
         if let Some(canvas) = table.borrow_mut().get_mut(&canvas_id) {
             if let Some(mut handler) = canvas.event_handler.take() {
                 handler.on_animation_frame(canvas, elapsed);
+                canvas.event_handler = Some(handler);
+            }
+        }
+    });
+}
+
+#[no_mangle]
+pub extern "C" fn on_key_down(canvas_id: u32, key_code: u32) {
+    WASM_CANVAS_TABLE.with(|table| {
+        if let Some(canvas) = table.borrow_mut().get_mut(&canvas_id) {
+            if let Some(mut handler) = canvas.event_handler.take() {
+                handler.on_key_down(canvas, key_code);
                 canvas.event_handler = Some(handler);
             }
         }
