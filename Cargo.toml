@@ -9,5 +9,5 @@ name = "web_canvas"
 path = "src/lib.rs"
 
 [[example]]
-name = "canvas_example"
+name = "pong"
 path = "examples/lib.rs"

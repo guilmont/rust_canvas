@@ -15,19 +15,17 @@ typescript:
 # Build WebAssembly for example
 example: typescript
 	echo "Building Example WebAssembly..."
-	cargo build --target wasm32-unknown-unknown --release --example canvas_example
+	cargo build --target wasm32-unknown-unknown --release --example pong
 
 	# Copy files to example directory for runtime static linking
-	cp target/wasm32-unknown-unknown/release/examples/canvas_example.wasm examples/web/canvas_example.wasm
+	cp target/wasm32-unknown-unknown/release/examples/pong.wasm examples/web/pong.wasm
 	cp dist/*.js examples/web/.
-
-	echo "Compiling TypeScript for example..."
-	tsc --project examples/tsconfig.json
 
 # Clean build artifacts
 clean:
 	echo "Cleaning build artifacts..."
 	rm -rf target/
+	rm -rf dist/
 
 # Check Rust code
 check:

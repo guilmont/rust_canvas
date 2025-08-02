@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Canvas - Rust WebAssembly 2D Graphics Library</title>
+    <style>
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Web Canvas</h1>
+        <p class="subtitle">Build interactive games and graphics with Rust + WebAssembly</p>
+
+        <div class="demo-section">
+            <h2>🏓 Live Demo: Pong Game</h2>
+            <p>Experience the power of Rust WebAssembly with this classic Pong game implementation.</p>
+
+            <div class="canvas-container">
+                <canvas id="example-canvas" width="800" height="400"></canvas>
+            </div>
+
+            <div class="controls">
+                <h4>🎮 Controls:</h4>
+                <strong>Mouse:</strong> Move paddle left and right<br>
+                <strong>Arrow Keys:</strong> Alternative paddle control<br>
+                <strong>Click:</strong> Restart game when game over
+            </div>
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h3>🚀 High Performance</h3>
+                <p>WebAssembly-powered graphics with native-like performance in the browser.</p>
+            </div>
+
+            <div class="feature-card">
+                <h3>🎨 Rich Graphics API</h3>
+                <p>Full 2D canvas support with shapes, paths, text rendering, and custom colors.</p>
+            </div>
+
+            <div class="feature-card">
+                <h3>⚡ Event Handling</h3>
+                <p>Mouse and keyboard events with trait-based handling for clean, reusable code.</p>
+            </div>
+
+            <div class="feature-card">
+                <h3>🔄 Animation Loop</h3>
+                <p>Built-in requestAnimationFrame support for smooth 60fps animations.</p>
+            </div>
+
+            <div class="feature-card">
+                <h3>📘 TypeScript Ready</h3>
+                <p>Complete type definitions for seamless TypeScript integration.</p>
+            </div>
+
+            <div class="feature-card">
+                <h3>🛠️ Easy Integration</h3>
+                <p>Drop-in JavaScript files for quick integration into any web project.</p>
+            </div>
+        </div>
+
+        <h2>🚀 Quick Start</h2>
+        <p>Get started with just a few files from the <code>dist/</code> directory:</p>
+
+        <div class="code-example">// app.js
+import { loadWasm } from './wasm-utils.js';
+import { getCanvasImports } from './canvas-wasm.js';
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const wasmExports = await loadWasm('./your-game.wasm', getCanvasImports());
+    wasmExports.main_function();
+});</div>
+
+        <div class="code-example">// Rust game logic
+use web_canvas::canvas;
+
+impl canvas::EventHandler for MyGame {
+    fn on_animation_frame(&mut self, canvas: &canvas::Canvas, elapsed: f32) {
+        canvas.set_fill_color(canvas::BLACK, 1.0);
+        canvas.fill_rect(0.0, 0.0, canvas.width(), canvas.height());
+
+        // Draw your game!
+        canvas.draw_circle(x, y, radius, canvas::WHITE);
+    }
+}</div>
+
+        <h2>📁 Required Files for Your Project</h2>
+        <p>Copy these files from <code>dist/</code> to integrate Web Canvas into your project:</p>
+        <ul>
+            <li><strong>canvas-wasm.js</strong> - Core canvas functionality and event handling</li>
+            <li><strong>wasm-utils.js</strong> - WebAssembly utilities and browser integration</li>
+            <li><strong>types/</strong> - TypeScript definitions (optional)</li>
+            <li><strong>your-compiled.wasm</strong> - Your Rust code compiled to WebAssembly</li>
+        </ul>
+
+        <div class="links">
+            <a href="https://github.com/your-username/web_canvas" class="btn">📁 View on GitHub</a>
+            <a href="https://github.com/your-username/web_canvas/blob/main/README.md" class="btn secondary">📖 Documentation</a>
+        </div>
+
+        <p style="text-align: center; color: #7f8c8d; margin-top: 40px;">
+            Built with ❤️ using Rust + WebAssembly
+        </p>
+    </div>
+
+    <script type="module" src="./dist/examples/web/app.js"></script>
+</body>
+</html>

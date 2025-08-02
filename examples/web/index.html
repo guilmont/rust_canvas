@@ -1,11 +1,76 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>Rust WebAssembly Example</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rust Canvas - Rust WebAssembly 2D Graphics Library</title>
+    <link rel="stylesheet" href="./styles.css">
+
+    <script defer type="module" src="./app.js"></script>
 </head>
 <body>
-    <canvas id="example-canvas" width="800" height="400"></canvas>
-    <script type="module" src="./app.js"></script>
+    <div class="container">
+        <h1>Rust Canvas</h1>
+        <p class="subtitle">Build interactive graphics for the browser with Rust + WebAssembly</p>
+
+        <h2>🚀 Quick Start</h2>
+        <p>Get started with just a few files from the <code>dist/</code> directory:</p>
+
+<div class="code-example"><pre><code>import { loadWasm } from './wasm-utils.js';
+import { getCanvasImports } from './canvas-wasm.js';
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const wasmExports = await loadWasm('./your-compiled.wasm', getCanvasImports());
+    wasmExports.main_function();
+});
+</code></pre></div>
+
+<div class="code-example"><pre><code>use web_canvas::canvas;
+use web_canvas::console;
+
+struct Object;
+impl canvas::EventHandler for Object { ... }
+
+#[no_mangle]
+pub fn main_function() {
+    console::log("Starting...");
+    let cv = canvas::Canvas::new("example-canvas", Some(Object));
+    cv.start_animation_loop();
+}
+</code></pre></div>
+
+        <p>Copy these files from <code>dist/</code> to integrate Web Canvas into your project:</p>
+        <ul>
+            <li><strong>canvas-wasm.js</strong> - Core canvas functionality and event handling</li>
+            <li><strong>wasm-utils.js</strong> - WebAssembly utilities and browser integration</li>
+            <li><strong>types/</strong> - TypeScript definitions (optional)</li>
+            <li><strong>your-compiled.wasm</strong> - Your Rust code compiled to WebAssembly</li>
+        </ul>
+
+        <div class="demo-section">
+            <h2>🏓 Live Demo: Pong Game</h2>
+
+            <div class="canvas-container">
+                <canvas id="example-canvas" width="800" height="400"></canvas>
+            </div>
+
+            <div class="controls">
+                <h4>🎮 Controls:</h4>
+                <strong>Mouse:</strong> Move paddle left and right<br>
+                <strong>Arrow Keys:</strong> Alternative paddle control<br>
+                <strong>Click:</strong> Restart game when game over
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: center; gap: 20px;">
+            <a href="https://github.com/guilmont/web_canvas" class="btn">📁 View on GitHub</a>
+
+            <p style="text-align: center; color: #7f8c8d;">
+                Built with ❤️ using Rust + WebAssembly
+            </p>
+        </div>
+
+
+    </div>
 </body>
 </html>
