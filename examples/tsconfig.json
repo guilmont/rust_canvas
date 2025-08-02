@@ -3,12 +3,15 @@
         "target": "ES2022",
         "module": "ES2022",
         "rootDir": "./",
-        "outDir": "../web",
+        "outDir": "./web",
+        "typeRoots": [
+            "../dist/types"
+        ],
         "strict": true,
         "skipLibCheck": true,
         "esModuleInterop": true,
         "forceConsistentCasingInFileNames": true,
         "moduleResolution": "node"
     },
-    "include": ["../../dist/types"], // Include types from the dist directory
+    "include": ["../dist/types/*.d.ts"],
 }

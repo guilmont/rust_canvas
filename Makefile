@@ -17,13 +17,12 @@ example: typescript
 	echo "Building Example WebAssembly..."
 	cargo build --target wasm32-unknown-unknown --release --example canvas_example
 
+	# Copy files to example directory for runtime static linking
 	cp target/wasm32-unknown-unknown/release/examples/canvas_example.wasm examples/web/canvas_example.wasm
-
-	# Copy JavaScript files to example directory for runtime static linking
 	cp dist/*.js examples/web/.
 
 	echo "Compiling TypeScript for example..."
-	tsc --project examples/ts/tsconfig.json
+	tsc --project examples/tsconfig.json
 
 # Clean build artifacts
 clean:

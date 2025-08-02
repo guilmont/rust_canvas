@@ -22,6 +22,7 @@ export function getCanvasImports() {
                     expo.on_mouse_up(canvasId, event.offsetX, event.offsetY);
                 });
             },
+            // --- Animation Loop ---
             start_animation_loop: (canvasId) => {
                 const canvasInfo = CANVAS_REGISTRY.get(canvasId);
                 if (canvasInfo.animationId !== null)
