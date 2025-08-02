@@ -4,26 +4,29 @@ import { decodeWasmString, encodeWasmString } from './wasm-utils.js';
 import { getWasmExports, WasmExports } from './wasm-utils.js';
 
 
-export interface CanvasExports extends WasmExports {
+interface CanvasExports extends WasmExports {
     on_mouse_move(canvasId: number, x: number, y: number): void;
     on_mouse_down(canvasId: number, x: number, y: number): void;
     on_mouse_up(canvasId: number, x: number, y: number): void;
+    on_animation_frame(canvasId: number, elapsed: number): void;
 }
 
 interface CanvasInfo {
     canvas: HTMLCanvasElement;
     context: CanvasRenderingContext2D;
+    animationId: number | null; // Animation loop id for this canvas
+    timer: number | null; // Timer for this canvas
 }
 
 const CANVAS_REGISTRY: Map<number, CanvasInfo> = new Map();
 
-export function createCanvasImports() {
-    return {
+export function getCanvasImports() {
+    return { Canvas: {
         register_canvas(namePtr: number, nameLen: number, canvasId: number) {
             const name = decodeWasmString(namePtr, nameLen);
             const canvas = document.getElementById(name)! as HTMLCanvasElement;
             const context = canvas.getContext('2d')! as CanvasRenderingContext2D;
-            CANVAS_REGISTRY.set(canvasId, { canvas, context });
+            CANVAS_REGISTRY.set(canvasId, { canvas, context, animationId: null, timer: null });
             canvas.addEventListener('mousemove', (event) => {
                 let expo = getWasmExports() as CanvasExports;
                 expo.on_mouse_move(canvasId, event.offsetX, event.offsetY);
@@ -37,6 +40,33 @@ export function createCanvasImports() {
                 expo.on_mouse_up(canvasId, event.offsetX, event.offsetY);
             });
         },
+
+        // --- Animation Loop ---
+        start_animation_loop:  (canvasId: number) => {
+            const canvasInfo = CANVAS_REGISTRY.get(canvasId)!;
+            if (canvasInfo.animationId !== null) return; // Already running
+
+            function animationFrame() {
+                let currTime = performance.now();
+                let elapsed = currTime - (canvasInfo.timer || currTime);
+                canvasInfo.timer = currTime;
+
+                let expo = getWasmExports() as CanvasExports;
+                expo.on_animation_frame(canvasId, elapsed / 1000.0); // Convert to seconds
+                canvasInfo.animationId = requestAnimationFrame(animationFrame);
+            }
+
+            canvasInfo.timer = performance.now() - 16; // Start timer with a small offset for 60Hz
+            canvasInfo.animationId = requestAnimationFrame(animationFrame);
+        },
+        stop_animation_loop:   (canvasId: number) => {
+            const canvasInfo = CANVAS_REGISTRY.get(canvasId)!;
+            if (canvasInfo.animationId !== null) {
+                cancelAnimationFrame(canvasInfo.animationId);
+                canvasInfo.animationId = null;
+            }
+        },
+
         // --- Canvas Dimensions ---
         height:     (canvasId: number): number         => { return CANVAS_REGISTRY.get(canvasId)!.canvas.height;   },
         width:      (canvasId: number): number         => { return CANVAS_REGISTRY.get(canvasId)!.canvas.width;    },
@@ -102,7 +132,7 @@ export function createCanvasImports() {
         set_stroke_color: (canvasId: number, r: number, g: number, b: number, a: number) => {
             CANVAS_REGISTRY.get(canvasId)!.context.strokeStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
         },
-    };
+    }};
 }
 
 

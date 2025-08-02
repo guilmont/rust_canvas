@@ -34,6 +34,7 @@ pub trait EventHandler {
     fn on_mouse_move(&mut self, _canvas: &Canvas, _x: f32, _y: f32) {}
     fn on_mouse_down(&mut self, _canvas: &Canvas, _x: f32, _y: f32) {}
     fn on_mouse_up(&mut self, _canvas: &Canvas, _x: f32, _y: f32) {}
+    fn on_animation_frame(&mut self, _canvas: &Canvas, _elapsed: f32) {}
 }
 
 /// Canvas object that encapsulates canvas operations ///////////////////////////////////
@@ -70,6 +71,11 @@ impl Canvas {
         });
         unsafe { &mut *mut_ref }
     }
+
+    /// Start the animation loop for this canvas
+    pub fn start_animation_loop(&self) { unsafe { js::start_animation_loop(self.id); } }
+    /// Stop the animation loop for this canvas
+    pub fn stop_animation_loop(&self) { unsafe { js::stop_animation_loop(self.id); } }
 
     /// Get canvas width
     pub fn width(&self) -> f32 { unsafe { js::width(self.id) } }
@@ -254,12 +260,25 @@ pub extern "C" fn on_mouse_up(canvas_id: u32, x: f32, y: f32) {
     });
 }
 
+#[no_mangle]
+pub extern "C" fn on_animation_frame(canvas_id: u32, elapsed: f32) {
+    WASM_CANVAS_TABLE.with(|table| {
+        if let Some(canvas) = table.borrow_mut().get_mut(&canvas_id) {
+            if let Some(mut handler) = canvas.event_handler.take() {
+                handler.on_animation_frame(canvas, elapsed);
+                canvas.event_handler = Some(handler);
+            }
+        }
+    });
+}
 
 /// API imported from JavaScript at the browser //////////////////////////////////////////
 mod js {
     #[link(wasm_import_module = "Canvas")]
     extern "C" {
         pub fn register_canvas(name_ptr: *const u8, name_len: usize, canvas_id: u32);
+        pub fn start_animation_loop(canvas_id: u32);
+        pub fn stop_animation_loop(canvas_id: u32);
         pub fn arc(canvas_id: u32, x: f32, y: f32, radius: f32, start_angle: f32, end_angle: f32);
         pub fn begin_path(canvas_id: u32);
         pub fn clear_rect(canvas_id: u32, x: f32, y: f32, width: f32, height: f32);

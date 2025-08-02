@@ -4,11 +4,11 @@
         "module": "ES2022",
         "rootDir": "./",
         "outDir": "../web",
-
         "strict": true,
         "skipLibCheck": true,
         "esModuleInterop": true,
         "forceConsistentCasingInFileNames": true,
-        "moduleResolution": "node",
-    }
+        "moduleResolution": "node"
+    },
+    "include": ["../../dist/types"], // Include types from the dist directory
 }
