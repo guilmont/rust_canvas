@@ -34,8 +34,8 @@ Try the [live demo](https://gmonteir.github.io/rust_canvas/) to see the Pong gam
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/guilmont/web_canvas.git
-   cd web_canvas
+   git clone https://github.com/guilmont/rust_canvas.git
+   cd rust_canvas
    ```
 
 2. **Install the WebAssembly target:**
