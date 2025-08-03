@@ -34,7 +34,8 @@ impl canvas::EventHandler for Object { ... }
 #[no_mangle]
 pub fn main_function() {
     console::log("Starting...");
-    let cv = canvas::Canvas::new("example-canvas", Some(Object));
+    let cv = canvas::Canvas::new("example-canvas");
+    cv.register_handler(Object);
     cv.start_animation_loop();
 }
 </code></pre></div>

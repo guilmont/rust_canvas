@@ -95,8 +95,8 @@ impl canvas::EventHandler for MyApp {
 pub fn main_function() {
     console::log("Starting application!");
 
-    let app = MyApp { /* initialize your state */ };
-    let canvas = canvas::Canvas::new("my-canvas", Some(app));
+    let canvas = canvas::Canvas::new("my-canvas");
+    canvas.register_handler(MyApp { /* initialize your state */ });
     canvas.start_animation_loop();
 }
 ```

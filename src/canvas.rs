@@ -40,37 +40,39 @@ pub trait EventHandler {
 
 /// Canvas object that encapsulates canvas operations ///////////////////////////////////
 
+#[derive(Clone)]
 pub struct Canvas {
     id: u32,
-    event_handler: Option<Box<dyn EventHandler>>,
 }
 
 impl Canvas {
     /// Create a new Canvas instance with optional event handler for HTML declared canvas with given name
-    pub fn new<T: EventHandler + 'static>(name: &str, event_handler: Option<T>) -> &mut Canvas {
-        let mut_ref = WASM_CANVAS_TABLE.with(|table| {
-            // Hash the canvas name to create a unique ID
-            // This is a simple hash function, the djb2 hash function
-            let mut canvas_id: u32 = 5381;
-            for b in name.bytes() {
-                canvas_id = ((canvas_id << 5).wrapping_add(canvas_id)).wrapping_add(b as u32);
-            }
-            // Use the canvas ID to get or create a Canvas instance
-            // If the canvas already exists, return a mutable reference to it
-            table.borrow_mut().entry(canvas_id).or_insert_with(|| {
+    pub fn new(name: &str) -> Canvas {
+        // Hash the canvas name to create a unique ID
+        // This is a simple hash function, the djb2 hash function
+        let mut canvas_id: u32 = 5381;
+        for b in name.bytes() {
+            canvas_id = ((canvas_id << 5).wrapping_add(canvas_id)).wrapping_add(b as u32);
+        }
+
+        // Register the canvas if it doesn't exist yet and prepare terrain at the browser
+        WASM_REGISTERED_CANVASES.with(|registered| {
+            if !registered.borrow().contains(&canvas_id) {
                 unsafe { js::register_canvas(name.as_ptr(), name.len(), canvas_id); }
-
-                let event_handler = if let Some(var) = event_handler {
-                    Some(Box::new(var) as Box<dyn EventHandler>)
-                } else {
-                    None
-                };
-
-                // Create a new Canvas instance and return a mutable reference to it
-                Canvas { id: canvas_id, event_handler }
-            }) as *mut Canvas
+                registered.borrow_mut().push(canvas_id);
+            }
         });
-        unsafe { &mut *mut_ref }
+
+        // Return a new Canvas instance by value
+        Canvas { id: canvas_id }
+    }
+
+    /// Register event handler for HTML canvas
+    pub fn register_handler<T: EventHandler + 'static>(&self, event_handler: T) {
+        // Store event handler separately if provided
+        WASM_EVENT_HANDLERS.with(|handlers| {
+            handlers.borrow_mut().insert(self.id, Box::new(event_handler));
+        });
     }
 
     /// Start the animation loop for this canvas
@@ -221,66 +223,68 @@ impl Canvas {
 use std::cell::RefCell;
 use std::collections::HashMap;
 thread_local! {
-    static WASM_CANVAS_TABLE: RefCell<HashMap<u32, Canvas>> = RefCell::new(HashMap::new());
+    static WASM_EVENT_HANDLERS: RefCell<HashMap<u32, Box<dyn EventHandler>>> = RefCell::new(HashMap::new());
+    // And don't expect to have too many canvases, so a vector should be fine.
+    static WASM_REGISTERED_CANVASES: RefCell<Vec<u32>> = RefCell::new(Vec::new());
 }
 
 /// WASM-exported mouse event handlers
 #[no_mangle]
 pub extern "C" fn on_mouse_move(canvas_id: u32, x: f32, y: f32) {
-    WASM_CANVAS_TABLE.with(|table| {
-        if let Some(canvas) = table.borrow_mut().get_mut(&canvas_id) {
-            if let Some(mut handler) = canvas.event_handler.take() {
-                handler.on_mouse_move(canvas, x, y);
-                canvas.event_handler = Some(handler);
-            }
+    WASM_EVENT_HANDLERS.with(|handlers| {
+        let mut handlers_ref = handlers.borrow_mut();
+        if let Some(mut handler) = handlers_ref.remove(&canvas_id) {
+            let canvas = Canvas { id: canvas_id };
+            handler.on_mouse_move(&canvas, x, y);
+            handlers_ref.insert(canvas_id, handler);
         }
     });
 }
 
 #[no_mangle]
 pub extern "C" fn on_mouse_down(canvas_id: u32, x: f32, y: f32) {
-    WASM_CANVAS_TABLE.with(|table| {
-        if let Some(canvas) = table.borrow_mut().get_mut(&canvas_id) {
-            if let Some(mut handler) = canvas.event_handler.take() {
-                handler.on_mouse_down(canvas, x, y);
-                canvas.event_handler = Some(handler);
-            }
+    WASM_EVENT_HANDLERS.with(|handlers| {
+        let mut handlers_ref = handlers.borrow_mut();
+        if let Some(mut handler) = handlers_ref.remove(&canvas_id) {
+            let canvas = Canvas { id: canvas_id };
+            handler.on_mouse_down(&canvas, x, y);
+            handlers_ref.insert(canvas_id, handler);
         }
     });
 }
 
 #[no_mangle]
 pub extern "C" fn on_mouse_up(canvas_id: u32, x: f32, y: f32) {
-    WASM_CANVAS_TABLE.with(|table| {
-        if let Some(canvas) = table.borrow_mut().get_mut(&canvas_id) {
-            if let Some(mut handler) = canvas.event_handler.take() {
-                handler.on_mouse_up(canvas, x, y);
-                canvas.event_handler = Some(handler);
-            }
+    WASM_EVENT_HANDLERS.with(|handlers| {
+        let mut handlers_ref = handlers.borrow_mut();
+        if let Some(mut handler) = handlers_ref.remove(&canvas_id) {
+            let canvas = Canvas { id: canvas_id };
+            handler.on_mouse_up(&canvas, x, y);
+            handlers_ref.insert(canvas_id, handler);
         }
     });
 }
 
 #[no_mangle]
 pub extern "C" fn on_animation_frame(canvas_id: u32, elapsed: f32) {
-    WASM_CANVAS_TABLE.with(|table| {
-        if let Some(canvas) = table.borrow_mut().get_mut(&canvas_id) {
-            if let Some(mut handler) = canvas.event_handler.take() {
-                handler.on_animation_frame(canvas, elapsed);
-                canvas.event_handler = Some(handler);
-            }
+    WASM_EVENT_HANDLERS.with(|handlers| {
+        let mut handlers_ref = handlers.borrow_mut();
+        if let Some(mut handler) = handlers_ref.remove(&canvas_id) {
+            let canvas = Canvas { id: canvas_id };
+            handler.on_animation_frame(&canvas, elapsed);
+            handlers_ref.insert(canvas_id, handler);
         }
     });
 }
 
 #[no_mangle]
 pub extern "C" fn on_key_down(canvas_id: u32, key_code: u32) {
-    WASM_CANVAS_TABLE.with(|table| {
-        if let Some(canvas) = table.borrow_mut().get_mut(&canvas_id) {
-            if let Some(mut handler) = canvas.event_handler.take() {
-                handler.on_key_down(canvas, key_code);
-                canvas.event_handler = Some(handler);
-            }
+    WASM_EVENT_HANDLERS.with(|handlers| {
+        let mut handlers_ref = handlers.borrow_mut();
+        if let Some(mut handler) = handlers_ref.remove(&canvas_id) {
+            let canvas = Canvas { id: canvas_id };
+            handler.on_key_down(&canvas, key_code);
+            handlers_ref.insert(canvas_id, handler);
         }
     });
 }

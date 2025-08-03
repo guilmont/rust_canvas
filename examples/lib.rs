@@ -187,7 +187,9 @@ pub fn main_function() {
 
     // Create pong game with standard canvas dimensions (800x400 from HTML)
     let pong_game = PongGame::new(800.0, 400.0);
-    let cv = canvas::Canvas::new("example-canvas", Some(pong_game));
+
+    let cv = canvas::Canvas::new("example-canvas");
+    cv.register_handler(pong_game);
     cv.start_animation_loop();
     console::log("Pong game started - move mouse to control paddle!");
 }
