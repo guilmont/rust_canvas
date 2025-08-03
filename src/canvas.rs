@@ -75,6 +75,9 @@ impl Canvas {
         });
     }
 
+    /// Get the unique ID of this canvas
+    pub fn id(&self) -> u32 { self.id }
+
     /// Start the animation loop for this canvas
     pub fn start_animation_loop(&self) { unsafe { js::start_animation_loop(self.id); } }
     /// Stop the animation loop for this canvas
