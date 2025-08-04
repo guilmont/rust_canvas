@@ -75,18 +75,17 @@ struct MyApp {
 impl canvas::EventHandler for MyApp {
     fn on_animation_frame(&mut self, canvas: &canvas::Canvas, elapsed: f32) {
         // Clear and draw your content
-        canvas.set_fill_color(canvas::BLACK, 1.0);
-        canvas.fill_rect(0.0, 0.0, canvas.width(), canvas.height());
+        canvas.clear();
 
         // Draw your game objects
-        canvas.draw_circle(100.0, 100.0, 20.0, canvas::WHITE);
+        canvas.fill_circle(100.0, 100.0, 20.0, canvas::WHITE);
     }
 
     fn on_mouse_move(&mut self, _canvas: &canvas::Canvas, x: f32, y: f32) {
         // Handle mouse movement
     }
 
-    fn on_key_down(&mut self, _canvas: &canvas::Canvas, key_code: u32) {
+    fn on_key_down(&mut self, _canvas: &canvas::Canvas, key_code: KeyCode) {
         // Handle keyboard input
     }
 }
@@ -95,7 +94,7 @@ impl canvas::EventHandler for MyApp {
 pub fn main_function() {
     console::log("Starting application!");
 
-    let canvas = canvas::Canvas::new("my-canvas");
+    let canvas = canvas::Canvas::from_element("my-canvas");
     canvas.register_handler(MyApp { /* initialize your state */ });
     canvas.start_animation_loop();
 }
@@ -160,19 +159,21 @@ your-project/
 
 ```rust
 // Drawing primitives
-canvas.draw_circle(x, y, radius, color);
-canvas.draw_rect(x, y, width, height, color);
-canvas.fill_rect(x, y, width, height);
+canvas.fill_circle(x, y, radius, color);
+canvas.stroke_circle(x, y, radius, line_width, color);
+canvas.fill_rect(x, y, width, height, angle, color);
+canvas.stroke_rect(x, y, width, height, angle, line_width, color);
+canvas.draw_line(x1, y1, x2, y2, line_width, color);
+canvas.draw_arrow(x1, y1, x2, y2, line_width, color);
 
 // Text rendering
-canvas.set_font("20px Arial");
-canvas.fill_text("Hello World", x, y);
-let width = canvas.measure_text_width("Hello World");
+canvas.draw_text("Hello World", x, y, "20px Arial", color);
+let width = canvas.measure_text_width("Hello World", "20px Arial");
 
-// Colors and styling
-canvas.set_fill_color(canvas::RED, 1.0);
-canvas.set_stroke_color(0, 255, 0, 1.0); // Custom RGB
-canvas.set_line_width(3.0);
+// Advanced shapes
+canvas.fill_triangle(x, y, size, angle, color);
+canvas.stroke_triangle(x, y, size, angle, line_width, color);
+canvas.stroke_curve(&x_points, &y_points, line_width, color);
 ```
 
 ### Event Handling
@@ -180,9 +181,10 @@ canvas.set_line_width(3.0);
 ```rust
 impl canvas::EventHandler for YourApp {
     fn on_mouse_move(&mut self, canvas: &canvas::Canvas, x: f32, y: f32) { }
-    fn on_mouse_down(&mut self, canvas: &canvas::Canvas, x: f32, y: f32) { }
-    fn on_mouse_up(&mut self, canvas: &canvas::Canvas, x: f32, y: f32) { }
-    fn on_key_down(&mut self, canvas: &canvas::Canvas, key_code: u32) { }
+    fn on_mouse_down(&mut self, canvas: &canvas::Canvas, x: f32, y: f32, button: MouseButton) { }
+    fn on_mouse_up(&mut self, canvas: &canvas::Canvas, x: f32, y: f32, button: MouseButton) { }
+    fn on_double_click(&mut self, canvas: &canvas::Canvas, x: f32, y: f32, button: MouseButton) { }
+    fn on_key_down(&mut self, canvas: &canvas::Canvas, key_code: KeyCode) { }
     fn on_animation_frame(&mut self, canvas: &canvas::Canvas, elapsed: f32) { }
 }
 ```

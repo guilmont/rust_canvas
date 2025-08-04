@@ -123,8 +123,8 @@ pub struct Canvas {
 }
 
 impl Canvas {
-    /// Create a new Canvas instance with optional event handler for HTML declared canvas with given name
-    pub fn new(name: &str) -> Canvas {
+    /// Create a Canvas handle for an existing HTML canvas element with the given name
+    pub fn from_element(name: &str) -> Canvas {
         // Hash the canvas name to create a unique ID
         // This is a simple hash function, the djb2 hash function
         let mut canvas_id: u32 = 5381;
