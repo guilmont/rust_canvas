@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use crate::console;
+
 /// Matplotlib-inspired color palette ////////////////////////////////////////////////////
 
 pub type Color = (u8, u8, u8);
@@ -90,99 +92,189 @@ impl Canvas {
     pub fn height(&self) -> f32 { unsafe { js::height(self.id) } }
 
     /// Measures the width of a given text with a specified font.
-    pub fn measure_text_width(&self, text: &str) -> f32 {
-        unsafe { js::measure_text_width(self.id, text.as_ptr(), text.len()) }
-    }
-
-    /// Begin a new path for drawing
-    pub fn begin_path(&self) { unsafe { js::begin_path(self.id) } }
-
-    /// Clear a rectangular area on the canvas
-    pub fn clear_rect(&self, x: f32, y: f32, width: f32, height: f32) {
-        unsafe { js::clear_rect(self.id, x, y, width, height) };
-    }
-
-    /// Fill the current drawing path
-    pub fn fill(&self) { unsafe { js::fill(self.id) } }
-
-    /// Fill a rectangle with the specified dimensions
-    pub fn fill_rect(&self, x: f32, y: f32, width: f32, height: f32) {
-        unsafe { js::fill_rect(self.id, x, y, width, height) };
-    }
-
-    /// Draw a line to the specified coordinates
-    pub fn line_to(&self, x: f32, y: f32) { unsafe { js::line_to(self.id, x, y) } }
-
-    /// Move the drawing cursor to the specified coordinates
-    pub fn move_to(&self, x: f32, y: f32) { unsafe { js::move_to(self.id, x, y) } }
-
-    /// Set the fill color for subsequent drawing operations
-    pub fn set_fill_color(&self, rgb: Color, alpha: f32) {
-        unsafe { js::set_fill_color(self.id, rgb.0, rgb.1, rgb.2, alpha) };
-    }
-
-    /// Set the line width for subsequent drawing operations
-    pub fn set_line_width(&self, width: f32) { unsafe { js::set_line_width(self.id, width) } }
-
-    /// Set the stroke color for subsequent drawing operations
-    pub fn set_stroke_color(&self, rgb: Color, alpha: f32) {
-        unsafe { js::set_stroke_color(self.id, rgb.0, rgb.1, rgb.2, alpha) };
-    }
-
-    /// Stroke the current drawing path
-    pub fn stroke(&self) { unsafe { js::stroke(self.id) } }
-
-    /// Stroke a rectangle with the specified dimensions
-    pub fn stroke_rect(&self, x: f32, y: f32, width: f32, height: f32) {
-        unsafe { js::stroke_rect(self.id, x, y, width, height) };
-    }
-
-    /// Draw text at the specified coordinates
-    pub fn fill_text(&self, text: &str, x: f32, y: f32) {
-        unsafe { js::fill_text(self.id, text.as_ptr(), text.len(), x, y) };
-    }
-
-    /// Set the font for text drawing operations
-    pub fn set_font(&self, font: &str) {
-        unsafe { js::set_font(self.id, font.as_ptr(), font.len()) };
-    }
-
-    /// Draw an arc at (x, y) with a given radius, start angle, and end angle (in radians)
-    pub fn arc(&self, x: f32, y: f32, radius: f32, start_angle: f32, end_angle: f32) {
-        unsafe { js::arc(self.id, x, y, radius, start_angle, end_angle) };
+    pub fn measure_text_width(&self, text: &str, font: &str) -> f32 {
+        unsafe {
+            js::set_font(self.id, font.as_ptr(), font.len());
+            js::measure_text_width(self.id, text.as_ptr(), text.len())
+        }
     }
 
     /// Clears the entire canvas
     pub fn clear(&self) {
-        self.clear_rect(0.0, 0.0, self.width(), self.height());
+        unsafe { js::clear_rect(self.id, 0.0, 0.0, js::width(self.id), js::height(self.id)) };
     }
 
-    /// Draws a rectangle at (x, y) with a given width, height and color.
-    pub fn draw_rect(&self, x: f32, y: f32, rect_width: f32, rect_height: f32, color: Color) {
-        self.set_fill_color(color, 1.0);
-        self.fill_rect(x, y, rect_width, rect_height);
+    /// Clears a rectangular area on the canvas
+    pub fn clear_rect(&self, x: f32, y: f32, width: f32, height: f32) {
+        unsafe { js::clear_rect(self.id, x, y, width, height) };
     }
 
-    /// Draws a circle at (x, y) with a given radius and color.
-    pub fn draw_circle(&self, x: f32, y: f32, radius: f32, color: Color) {
-        self.set_fill_color(color, 1.0);
-        self.begin_path();
-        self.arc(x, y, radius, 0.0, 2.0 * 3.14159);
-        self.fill();
+    /// Draws a filled rectangle at (x, y) with given dimensions, rotation angle and color
+    pub fn fill_rect(&self, x: f32, y: f32, width: f32, height: f32, angle: f32, color: Color) {
+        self.set_fill_style(color);
+        if angle == 0.0 {
+            // Use optimized fill_rect for non-rotated rectangles
+            unsafe { js::fill_rect(self.id, x, y, width, height); }
+        } else {
+            self.draw_rect_path(x, y, width, height, angle);
+            unsafe { js::fill(self.id); }
+        }
     }
 
-    /// Draws a line from (x1, y1) to (x2, y2) with a given color and width.
-    pub fn draw_line(&self, x1: f32, y1: f32, x2: f32, y2: f32, color: Color, line_width: f32) {
-        self.set_stroke_color(color, 1.0);
-        self.set_line_width(line_width);
-        self.begin_path();
-        self.move_to(x1, y1);
-        self.line_to(x2, y2);
-        self.stroke();
+    /// Draws a stroked rectangle at (x, y) with given dimensions, rotation angle, line width and color
+    pub fn stroke_rect(&self, x: f32, y: f32, width: f32, height: f32, angle: f32, line_width: f32, color: Color) {
+        self.set_stroke_style(color, line_width);
+        if angle == 0.0 {
+            // Use optimized stroke_rect for non-rotated rectangles
+            unsafe { js::stroke_rect(self.id, x, y, width, height); }
+        } else {
+            self.draw_rect_path(x, y, width, height, angle);
+            unsafe { js::stroke(self.id); }
+        }
     }
 
-    /// Draws a triangle centered at (x, y) with a given size and orientation angle (in radians).
-    pub fn draw_triangle(&self, x: f32, y: f32, size: f32, angle: f32, color: Color) {
+    /// Draws a filled circle at (x, y) with given radius and color
+    pub fn fill_circle(&self, x: f32, y: f32, radius: f32, color: Color) {
+        self.set_fill_style(color);
+        self.draw_circle_path(x, y, radius);
+        unsafe { js::fill(self.id); }
+    }
+
+    /// Draws a stroked circle at (x, y) with given radius, line width and color
+    pub fn stroke_circle(&self, x: f32, y: f32, radius: f32, line_width: f32, color: Color) {
+        self.set_stroke_style(color, line_width);
+        self.draw_circle_path(x, y, radius);
+        unsafe { js::stroke(self.id); }
+    }
+
+    /// Draws a line from (x1, y1) to (x2, y2) with given line width and color
+    pub fn draw_line(&self, x1: f32, y1: f32, x2: f32, y2: f32, line_width: f32, color: Color) {
+        self.set_stroke_style(color, line_width);
+        unsafe {
+            js::begin_path(self.id);
+            js::move_to(self.id, x1, y1);
+            js::line_to(self.id, x2, y2);
+            js::stroke(self.id);
+        }
+    }
+
+    /// Draws text at (x, y) with given font and color
+    pub fn draw_text(&self, text: &str, x: f32, y: f32, font: &str, color: Color) {
+        self.set_fill_style(color);
+        unsafe {
+            js::set_font(self.id, font.as_ptr(), font.len());
+            js::fill_text(self.id, text.as_ptr(), text.len(), x, y);
+        }
+    }
+
+    /// Draws a filled triangle centered at (x, y) with given size, rotation angle and color
+    pub fn fill_triangle(&self, x: f32, y: f32, size: f32, angle: f32, color: Color) {
+        self.set_fill_style(color);
+        self.draw_triangle_path(x, y, size, angle);
+        unsafe { js::fill(self.id); }
+    }
+
+    /// Draws a stroked triangle centered at (x, y) with given size, rotation angle, line width and color
+    pub fn stroke_triangle(&self, x: f32, y: f32, size: f32, angle: f32, line_width: f32, color: Color) {
+        self.set_stroke_style(color, line_width);
+        self.draw_triangle_path(x, y, size, angle);
+        unsafe { js::stroke(self.id); }
+    }
+
+    /// Draws an arrow from (x1, y1) to (x2, y2) with given line width and color
+    pub fn draw_arrow(&self, x1: f32, y1: f32, x2: f32, y2: f32, line_width: f32, color: Color) {
+        // Skip drawing if the length is too small to be visible
+        let length = ((x2 - x1).powi(2) + (y2 - y1).powi(2)).sqrt();
+        if length < line_width { return; }
+
+        // Draw the main line
+        self.draw_line(x1, y1, x2, y2, line_width, color);
+
+        let height = 6.0 * line_width;
+        let angle = (y2 - y1).atan2(x2 - x1);
+
+        // Draw arrowhead
+        self.fill_triangle(x2 - height * angle.cos(), y2 - height * angle.sin(), height, angle, color);
+    }
+
+    /// Draws a curve by connecting points with given line width and color
+    /// x_points and y_points must have the same length
+    pub fn stroke_curve(&self, x_points: &[f32], y_points: &[f32], line_width: f32, color: Color) {
+        if x_points.len() != y_points.len() || x_points.len() < 2 {
+            console::error("stroke_curve: x_points and y_points must have the same length and at least 2 points");
+            console::error(format!("x_points: {:?}, y_points: {:?}", x_points, y_points).as_str());
+            console::error(format!("Length: {}", x_points.len()).as_str());
+            console::error(format!("Returning without drawing curve").as_str());
+            return;
+        }
+
+        self.set_stroke_style(color, line_width);
+        unsafe {
+            js::begin_path(self.id);
+            js::move_to(self.id, x_points[0], y_points[0]);
+
+            for i in 1..x_points.len() {
+                js::line_to(self.id, x_points[i], y_points[i]);
+            }
+
+            js::stroke(self.id);
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    /// PRIVATE METHODS
+
+    // Helper methods to reduce duplication
+    fn set_fill_style(&self, color: Color) {
+        unsafe { js::set_fill_color(self.id, color.0, color.1, color.2, 1.0); }
+    }
+
+    fn set_stroke_style(&self, color: Color, line_width: f32) {
+        unsafe {
+            js::set_stroke_color(self.id, color.0, color.1, color.2, 1.0);
+            js::set_line_width(self.id, line_width);
+        }
+    }
+
+    fn draw_rect_path(&self, x: f32, y: f32, width: f32, height: f32, angle: f32) {
+        unsafe {
+            if angle == 0.0 {
+                // Simple case - no rotation, but we still need to create a path for consistency
+                js::begin_path(self.id);
+                js::move_to(self.id, x, y);
+                js::line_to(self.id, x + width, y);
+                js::line_to(self.id, x + width, y + height);
+                js::line_to(self.id, x, y + height);
+                js::line_to(self.id, x, y);
+            } else {
+                // Rotated rectangle using path
+                let cos_a = angle.cos();
+                let sin_a = angle.sin();
+                let hw = width / 2.0;
+                let hh = height / 2.0;
+
+                // Calculate corners relative to center, then translate
+                let cx = x + hw;
+                let cy = y + hh;
+
+                js::begin_path(self.id);
+                js::move_to(self.id, cx + (-hw * cos_a - -hh * sin_a), cy + (-hw * sin_a + -hh * cos_a));
+                js::line_to(self.id, cx + (hw * cos_a - -hh * sin_a), cy + (hw * sin_a + -hh * cos_a));
+                js::line_to(self.id, cx + (hw * cos_a - hh * sin_a), cy + (hw * sin_a + hh * cos_a));
+                js::line_to(self.id, cx + (-hw * cos_a - hh * sin_a), cy + (-hw * sin_a + hh * cos_a));
+                js::line_to(self.id, cx + (-hw * cos_a - -hh * sin_a), cy + (-hw * sin_a + -hh * cos_a));
+            }
+        }
+    }
+
+    fn draw_circle_path(&self, x: f32, y: f32, radius: f32) {
+        unsafe {
+            js::begin_path(self.id);
+            js::arc(self.id, x, y, radius, 0.0, 2.0 * std::f32::consts::PI);
+        }
+    }
+
+    fn draw_triangle_path(&self, x: f32, y: f32, size: f32, angle: f32) {
         let h = size; // height from center to tip
         let w = size * 0.6; // width of the base
         // Calculate the three vertices
@@ -194,29 +286,14 @@ impl Canvas {
         let base1_y = y + w * base_angle1.sin();
         let base2_x = x + w * base_angle2.cos();
         let base2_y = y + w * base_angle2.sin();
-        self.set_fill_color(color, 1.0);
-        self.begin_path();
-        self.move_to(tip_x, tip_y);
-        self.line_to(base1_x, base1_y);
-        self.line_to(base2_x, base2_y);
-        self.line_to(tip_x, tip_y);
-        self.fill();
-    }
 
-    /// Draws an arrow from (x1, y1) to (x2, y2) with a given color and width.
-    pub fn draw_arrow(&self, x1: f32, y1: f32, x2: f32, y2: f32, color: Color, line_width: f32) {
-        // Skip drawing if the length is too small to be visible
-        let length = ((x2 - x1).powi(2) + (y2 - y1).powi(2)).sqrt();
-        if length < line_width { return; }
-
-        // Draw the main line
-        self.draw_line(x1, y1, x2, y2, color, line_width);
-
-        let height = 6.0 * line_width;
-        let angle = (y2 - y1).atan2(x2 - x1);
-
-        // Draw arrowhead
-        self.draw_triangle(x2 - height * angle.cos(), y2 - height * angle.sin(), height, angle, color);
+        unsafe {
+            js::begin_path(self.id);
+            js::move_to(self.id, tip_x, tip_y);
+            js::line_to(self.id, base1_x, base1_y);
+            js::line_to(self.id, base2_x, base2_y);
+            js::line_to(self.id, tip_x, tip_y);
+        }
     }
 }
 

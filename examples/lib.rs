@@ -122,33 +122,26 @@ impl PongGame {
 
     fn draw(&self, canvas: &canvas::Canvas) {
         // Clear canvas
-        canvas.set_fill_color(canvas::BLACK, 1.0);
-        canvas.fill_rect(0.0, 0.0, canvas.width(), canvas.height());
+        canvas.fill_rect(0.0, 0.0, canvas.width(), canvas.height(), 0.0, canvas::BLACK);
 
         if !self.game_over {
-            canvas.draw_circle(self.ball.pos.x, self.ball.pos.y, self.ball.radius, canvas::WHITE);
-            canvas.draw_rect(self.paddle.pos.x, self.paddle.pos.y, self.paddle.width, self.paddle.height, canvas::TAB_ORANGE);
+            canvas.fill_circle(self.ball.pos.x, self.ball.pos.y, self.ball.radius, canvas::WHITE);
+            canvas.fill_rect(self.paddle.pos.x, self.paddle.pos.y, self.paddle.width, self.paddle.height, 0.0, canvas::TAB_ORANGE);
         }
 
         // Draw score
-        canvas.set_font("20px sans-serif");
-        canvas.set_fill_color(canvas::WHITE, 1.0);
         let score_text = format!("Score: {}", self.score);
-        canvas.fill_text(&score_text, 10.0, 30.0);
+        canvas.draw_text(&score_text, 10.0, 30.0, "20px sans-serif", canvas::WHITE);
 
         // Draw game over message
         if self.game_over {
-            canvas.set_font("30px sans-serif");
-            canvas.set_fill_color(canvas::RED, 1.0);
             let game_over_text = "GAME OVER";
-            let text_width = canvas.measure_text_width(game_over_text);
-            canvas.fill_text(game_over_text, (canvas.width() - text_width) / 2.0, canvas.height() / 2.0);
+            let text_width = canvas.measure_text_width(game_over_text, "30px sans-serif");
+            canvas.draw_text(game_over_text, (canvas.width() - text_width) / 2.0, canvas.height() / 2.0, "30px sans-serif", canvas::RED);
 
-            canvas.set_font("16px sans-serif");
-            canvas.set_fill_color(canvas::WHITE, 1.0);
             let restart_text = "Click to restart";
-            let restart_width = canvas.measure_text_width(restart_text);
-            canvas.fill_text(restart_text, (canvas.width() - restart_width) / 2.0, canvas.height() / 2.0 + 40.0);
+            let restart_width = canvas.measure_text_width(restart_text, "16px sans-serif");
+            canvas.draw_text(restart_text, (canvas.width() - restart_width) / 2.0, canvas.height() / 2.0 + 40.0, "16px sans-serif", canvas::WHITE);
         }
     }
 }
