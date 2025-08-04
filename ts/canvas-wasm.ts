@@ -6,8 +6,9 @@ import { getWasmExports, WasmExports } from './wasm-utils.js';
 
 interface CanvasExports extends WasmExports {
     on_mouse_move(canvasId: number, x: number, y: number): void;
-    on_mouse_down(canvasId: number, x: number, y: number): void;
-    on_mouse_up(canvasId: number, x: number, y: number): void;
+    on_mouse_down(canvasId: number, x: number, y: number, button: number): void;
+    on_mouse_up(canvasId: number, x: number, y: number, button: number): void;
+    on_double_click(canvasId: number, x: number, y: number, button: number): void;
     on_animation_frame(canvasId: number, elapsed: number): void;
     on_key_down(canvasId: number, keyCode: number): void;
 }
@@ -33,19 +34,35 @@ export function getCanvasImports() {
                 expo.on_mouse_move(canvasId, event.offsetX, event.offsetY);
             });
             canvas.addEventListener('mousedown', (event) => {
+                // Only prevent default for middle mouse button (button 1) to stop scrolling
+                // Allow left and right clicks to focus the canvas normally
+                if (event.button === 1) { event.preventDefault(); }
                 let expo = getWasmExports() as CanvasExports;
-                expo.on_mouse_down(canvasId, event.offsetX, event.offsetY);
+                expo.on_mouse_down(canvasId, event.offsetX, event.offsetY, event.button);
             });
             canvas.addEventListener('mouseup', (event) => {
+                // Only prevent default for middle mouse button
+                if (event.button === 1) { event.preventDefault(); }
                 let expo = getWasmExports() as CanvasExports;
-                expo.on_mouse_up(canvasId, event.offsetX, event.offsetY);
+                expo.on_mouse_up(canvasId, event.offsetX, event.offsetY, event.button);
+            });
+            canvas.addEventListener('contextmenu', (event) => {
+                event.preventDefault(); // Prevent right-click context menu
+            });
+            canvas.addEventListener('dblclick', (event) => {
+                let expo = getWasmExports() as CanvasExports;
+                expo.on_double_click(canvasId, event.offsetX, event.offsetY, event.button);
             });
             // Ensure canvas is focusable for keyboard events
             canvas.tabIndex = 0;
             canvas.addEventListener('keydown', (event) => {
-                let expo = getWasmExports() as CanvasExports;
-                expo.on_key_down(canvasId, getKeyCode(event.key));
-            }, true);
+                // Only handle keydown if canvas is focused
+                if (document.activeElement === canvas) {
+                    event.preventDefault(); // Prevent default browser behavior
+                    let expo = getWasmExports() as CanvasExports;
+                    expo.on_key_down(canvasId, getKeyCode(event.key));
+                }
+            });
         },
 
         // --- Animation Loop ---
@@ -159,10 +176,17 @@ function getKeyCode(key: string): number {
         case "Alt":        return 18;
         case "Meta":       return 91;
         case "CapsLock":   return 20;
-        case "Space":
         case " ":          return 32;
+        case "-":
+        case "Minus":      return 189;
+        case "+":
+        case "=":
+        case "Equal":      return 187;
         default:
-            if (key.length !== 1) { throw new Error(`Unsupported key event: ${key}`); }
-            return key.charCodeAt(0);
+            if (key.length !== 1) {
+                console.warn(`Unsupported key event: "${key}"`);
+                return 65535; // Return Unknown KeyCode value instead of 0
+            }
+            return key.toUpperCase().charCodeAt(0);
     }
 }

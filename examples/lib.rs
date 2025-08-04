@@ -2,6 +2,8 @@
 use web_canvas::canvas;
 use web_canvas::console;
 
+use web_canvas::canvas::MouseButton;
+use web_canvas::canvas::KeyCode;
 
 struct Point {
     x: f32,
@@ -26,6 +28,8 @@ struct PongGame {
     score: u32,
     game_over: bool,
     elapsed_time: f32,
+    paused: bool,
+    speed_multiplier: f32,
 }
 
 impl PongGame {
@@ -48,11 +52,13 @@ impl PongGame {
                     y: canvas_height - 30.0,
                 },
                 width: 100.0,
-                height: 15.0,
+                height: 10.0,
             },
             score: 0,
             game_over: false,
             elapsed_time: 0.0,
+            paused: true,  // Start paused - wait for Space to begin
+            speed_multiplier: 1.0,
         }
     }
 
@@ -65,10 +71,12 @@ impl PongGame {
         self.paddle.pos.y = canvas_height - 30.0;
         self.score = 0;
         self.game_over = false;
+        self.paused = false;
+        self.speed_multiplier = 1.0;
     }
 
     fn update(&mut self, canvas: &canvas::Canvas, dt: f32) {
-        if self.game_over { return; }
+        if self.game_over || self.paused { return; }
 
         // Keep paddle within bounds
         if self.paddle.pos.x < 0.0 {
@@ -78,9 +86,9 @@ impl PongGame {
             self.paddle.pos.x = canvas.width() - self.paddle.width;
         }
 
-        // Update ball position
-        self.ball.pos.x += self.ball.vel.x * dt;
-        self.ball.pos.y += self.ball.vel.y * dt;
+        // Update ball position with speed multiplier
+        self.ball.pos.x += self.ball.vel.x * dt * self.speed_multiplier;
+        self.ball.pos.y += self.ball.vel.y * dt * self.speed_multiplier;
 
         // Ball collision with walls
         if self.ball.pos.x - self.ball.radius <= 0.0 || self.ball.pos.x + self.ball.radius >= canvas.width() {
@@ -129,9 +137,20 @@ impl PongGame {
             canvas.fill_rect(self.paddle.pos.x, self.paddle.pos.y, self.paddle.width, self.paddle.height, 0.0, canvas::TAB_ORANGE);
         }
 
-        // Draw score
-        let score_text = format!("Score: {}", self.score);
+        // Draw score and speed multiplier
+        let score_text = format!("Score: {} | Speed: {:.1}x", self.score, self.speed_multiplier);
         canvas.draw_text(&score_text, 10.0, 30.0, "20px sans-serif", canvas::WHITE);
+
+        // Draw pause status
+        if self.paused {
+            let pause_text = if self.score == 0 {
+                "Click canvas, then press SPACE to start"
+            } else {
+                "PAUSED - Press SPACE to resume"
+            };
+            let pause_width = canvas.measure_text_width(pause_text, "24px sans-serif");
+            canvas.draw_text(pause_text, (canvas.width() - pause_width) / 2.0, canvas.height() / 2.0 - 50.0, "24px sans-serif", canvas::TAB_BLUE);
+        }
 
         // Draw game over message
         if self.game_over {
@@ -139,7 +158,7 @@ impl PongGame {
             let text_width = canvas.measure_text_width(game_over_text, "30px sans-serif");
             canvas.draw_text(game_over_text, (canvas.width() - text_width) / 2.0, canvas.height() / 2.0, "30px sans-serif", canvas::RED);
 
-            let restart_text = "Click to restart";
+            let restart_text = "Space to restart";
             let restart_width = canvas.measure_text_width(restart_text, "16px sans-serif");
             canvas.draw_text(restart_text, (canvas.width() - restart_width) / 2.0, canvas.height() / 2.0 + 40.0, "16px sans-serif", canvas::WHITE);
         }
@@ -148,11 +167,26 @@ impl PongGame {
 
 impl canvas::EventHandler for PongGame {
     fn on_mouse_move(&mut self, _canvas: &canvas::Canvas, x: f32, _y: f32) {
-        self.paddle.pos.x = x - self.paddle.width / 2.0;
+        if ! (self.paused || self.game_over) {
+            self.paddle.pos.x = x - self.paddle.width / 2.0;
+        }
     }
 
-    fn on_mouse_up(&mut self, canvas: &canvas::Canvas, _x: f32, _y: f32) {
-        if self.game_over {
+    fn on_mouse_down(&mut self, _canvas: &canvas::Canvas, _x: f32, _y: f32, button: MouseButton) {
+        match button {
+            MouseButton::Left => { // Increase speed
+                self.speed_multiplier = (self.speed_multiplier + 0.5).min(3.0);
+            }
+            MouseButton::Right => { // Decrease speed
+                self.speed_multiplier = (self.speed_multiplier - 0.5).max(0.1);
+            }
+            MouseButton::Middle => { self.speed_multiplier = 1.0; }
+            _ => {}
+        }
+    }
+
+    fn on_mouse_up(&mut self, canvas: &canvas::Canvas, _x: f32, _y: f32, button: MouseButton) {
+        if self.game_over && button == MouseButton::Left {
             self.reset(canvas.width(), canvas.height());
         }
     }
@@ -163,13 +197,35 @@ impl canvas::EventHandler for PongGame {
         self.draw(canvas);
     }
 
-    fn on_key_down(&mut self, canvas: &canvas::Canvas, key_code: u32) {
-        // Adjust speed based on elapsed time. We can move twice the width of the canvas per second
-        let speed = 2.0 * canvas.width() * self.elapsed_time;
-        if key_code == 37 {
-            self.paddle.pos.x = f32::max(self.paddle.pos.x - speed, 0.0);
-        } else if key_code == 39 {
-            self.paddle.pos.x = f32::min(self.paddle.pos.x + speed, canvas.width() - self.paddle.width / 2.0);
+    fn on_key_down(&mut self, canvas: &canvas::Canvas, key_code: KeyCode) {
+        match key_code {
+            KeyCode::ArrowLeft => { // Move paddle left
+                if ! (self.paused || self.game_over) {
+                    let speed = 2.0 * canvas.width() * self.elapsed_time;
+                    self.paddle.pos.x = f32::max(self.paddle.pos.x - speed, 0.0);
+                }
+            }
+            KeyCode::ArrowRight => { // Move paddle right
+                if ! (self.paused || self.game_over) {
+                    let speed = 2.0 * canvas.width() * self.elapsed_time;
+                    self.paddle.pos.x = f32::min(self.paddle.pos.x + speed, canvas.width() - self.paddle.width / 2.0);
+                }
+            }
+            KeyCode::ArrowDown => { // Decrease speed
+                self.speed_multiplier = (self.speed_multiplier - 0.5).max(0.1);
+            }
+            KeyCode::ArrowUp => { // Increase speed
+                self.speed_multiplier = (self.speed_multiplier + 0.5).min(3.0);
+            }
+            KeyCode::Space => { // Toggle pause/start
+                if self.game_over {
+                    self.reset(canvas.width(), canvas.height());
+                } else {
+                    self.paused = !self.paused;
+                }
+            }
+            KeyCode::Escape => { self.speed_multiplier = 1.0; }
+            _ => {}
         }
     }
 }

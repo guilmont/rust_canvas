@@ -34,10 +34,85 @@ pub const TAB_CYAN: Color = (23, 190, 207);    // #17becf
 
 pub trait EventHandler {
     fn on_mouse_move(&mut self, _canvas: &Canvas, _x: f32, _y: f32) {}
-    fn on_mouse_down(&mut self, _canvas: &Canvas, _x: f32, _y: f32) {}
-    fn on_mouse_up(&mut self, _canvas: &Canvas, _x: f32, _y: f32) {}
+    fn on_mouse_down(&mut self, _canvas: &Canvas, _x: f32, _y: f32, _button: MouseButton) {}
+    fn on_mouse_up(&mut self, _canvas: &Canvas, _x: f32, _y: f32, _button: MouseButton) {}
+    fn on_double_click(&mut self, _canvas: &Canvas, _x: f32, _y: f32, _button: MouseButton) {}
     fn on_animation_frame(&mut self, _canvas: &Canvas, _elapsed: f32) {}
-    fn on_key_down(&mut self, _canvas: &Canvas, _key_code: u32) {}
+    fn on_key_down(&mut self, _canvas: &Canvas, _key_code: KeyCode) {}
+}
+
+/// Mouse button types
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum MouseButton {
+    Left = 0,
+    Middle = 1,
+    Right = 2,
+    Unknown = 255,
+}
+
+/// Keyboard key types
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum KeyCode {
+    // Numbers
+    Key0 = 48,
+    Key1 = 49,
+    Key2 = 50,
+    Key3 = 51,
+    Key4 = 52,
+    Key5 = 53,
+    Key6 = 54,
+    Key7 = 55,
+    Key8 = 56,
+    Key9 = 57,
+
+    // Letters
+    A = 65,
+    B = 66,
+    C = 67,
+    D = 68,
+    E = 69,
+    F = 70,
+    G = 71,
+    H = 72,
+    I = 73,
+    J = 74,
+    K = 75,
+    L = 76,
+    M = 77,
+    N = 78,
+    O = 79,
+    P = 80,
+    Q = 81,
+    R = 82,
+    S = 83,
+    T = 84,
+    U = 85,
+    V = 86,
+    W = 87,
+    X = 88,
+    Y = 89,
+    Z = 90,
+
+    // Arrow keys
+    ArrowLeft = 37,
+    ArrowUp = 38,
+    ArrowRight = 39,
+    ArrowDown = 40,
+
+    // Special keys
+    Space = 32,
+    Enter = 13,
+    Escape = 27,
+    Tab = 9,
+    Shift = 16,
+    Ctrl = 17,
+    Alt = 18,
+
+    // Symbols
+    Minus = 189,      // -
+    Equal = 187,      // = (and + with Shift)
+
+    Unknown = 65535,
 }
 
 /// Canvas object that encapsulates canvas operations ///////////////////////////////////
@@ -322,24 +397,36 @@ pub extern "C" fn on_mouse_move(canvas_id: u32, x: f32, y: f32) {
 }
 
 #[no_mangle]
-pub extern "C" fn on_mouse_down(canvas_id: u32, x: f32, y: f32) {
+pub extern "C" fn on_mouse_down(canvas_id: u32, x: f32, y: f32, button: u32) {
     WASM_EVENT_HANDLERS.with(|handlers| {
         let mut handlers_ref = handlers.borrow_mut();
         if let Some(mut handler) = handlers_ref.remove(&canvas_id) {
             let canvas = Canvas { id: canvas_id };
-            handler.on_mouse_down(&canvas, x, y);
+            handler.on_mouse_down(&canvas, x, y, MouseButton::from(button));
             handlers_ref.insert(canvas_id, handler);
         }
     });
 }
 
 #[no_mangle]
-pub extern "C" fn on_mouse_up(canvas_id: u32, x: f32, y: f32) {
+pub extern "C" fn on_mouse_up(canvas_id: u32, x: f32, y: f32, button: u32) {
     WASM_EVENT_HANDLERS.with(|handlers| {
         let mut handlers_ref = handlers.borrow_mut();
         if let Some(mut handler) = handlers_ref.remove(&canvas_id) {
             let canvas = Canvas { id: canvas_id };
-            handler.on_mouse_up(&canvas, x, y);
+            handler.on_mouse_up(&canvas, x, y, MouseButton::from(button));
+            handlers_ref.insert(canvas_id, handler);
+        }
+    });
+}
+
+#[no_mangle]
+pub extern "C" fn on_double_click(canvas_id: u32, x: f32, y: f32, button: u32) {
+    WASM_EVENT_HANDLERS.with(|handlers| {
+        let mut handlers_ref = handlers.borrow_mut();
+        if let Some(mut handler) = handlers_ref.remove(&canvas_id) {
+            let canvas = Canvas { id: canvas_id };
+            handler.on_double_click(&canvas, x, y, MouseButton::from(button));
             handlers_ref.insert(canvas_id, handler);
         }
     });
@@ -363,7 +450,7 @@ pub extern "C" fn on_key_down(canvas_id: u32, key_code: u32) {
         let mut handlers_ref = handlers.borrow_mut();
         if let Some(mut handler) = handlers_ref.remove(&canvas_id) {
             let canvas = Canvas { id: canvas_id };
-            handler.on_key_down(&canvas, key_code);
+            handler.on_key_down(&canvas, KeyCode::from(key_code));
             handlers_ref.insert(canvas_id, handler);
         }
     });
@@ -393,5 +480,73 @@ mod js {
         pub fn fill_text(canvas_id: u32, text_ptr: *const u8, text_len: usize, x: f32, y: f32);
         pub fn set_font(canvas_id: u32, font_ptr: *const u8, font_len: usize);
         pub fn measure_text_width(canvas_id: u32, text_ptr: *const u8, text_len: usize) -> f32;
+    }
+}
+
+impl From<u32> for MouseButton {
+    fn from(button: u32) -> Self {
+        match button {
+            0 => MouseButton::Left,
+            1 => MouseButton::Middle,
+            2 => MouseButton::Right,
+            _ => MouseButton::Unknown,
+        }
+    }
+}
+
+impl From<u32> for KeyCode {
+    fn from(code: u32) -> Self {
+        match code {
+            48 => KeyCode::Key0,
+            49 => KeyCode::Key1,
+            50 => KeyCode::Key2,
+            51 => KeyCode::Key3,
+            52 => KeyCode::Key4,
+            53 => KeyCode::Key5,
+            54 => KeyCode::Key6,
+            55 => KeyCode::Key7,
+            56 => KeyCode::Key8,
+            57 => KeyCode::Key9,
+            65 => KeyCode::A,
+            66 => KeyCode::B,
+            67 => KeyCode::C,
+            68 => KeyCode::D,
+            69 => KeyCode::E,
+            70 => KeyCode::F,
+            71 => KeyCode::G,
+            72 => KeyCode::H,
+            73 => KeyCode::I,
+            74 => KeyCode::J,
+            75 => KeyCode::K,
+            76 => KeyCode::L,
+            77 => KeyCode::M,
+            78 => KeyCode::N,
+            79 => KeyCode::O,
+            80 => KeyCode::P,
+            81 => KeyCode::Q,
+            82 => KeyCode::R,
+            83 => KeyCode::S,
+            84 => KeyCode::T,
+            85 => KeyCode::U,
+            86 => KeyCode::V,
+            87 => KeyCode::W,
+            88 => KeyCode::X,
+            89 => KeyCode::Y,
+            90 => KeyCode::Z,
+            37 => KeyCode::ArrowLeft,
+            38 => KeyCode::ArrowUp,
+            39 => KeyCode::ArrowRight,
+            40 => KeyCode::ArrowDown,
+            32 => KeyCode::Space,
+            13 => KeyCode::Enter,
+            27 => KeyCode::Escape,
+            9 => KeyCode::Tab,
+            16 => KeyCode::Shift,
+            17 => KeyCode::Ctrl,
+            18 => KeyCode::Alt,
+            189 => KeyCode::Minus,
+            187 => KeyCode::Equal,
+            _ => KeyCode::Unknown,
+        }
     }
 }
