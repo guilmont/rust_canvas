@@ -37,8 +37,10 @@ pub trait EventHandler {
     fn on_mouse_down(&mut self, _canvas: &Canvas, _x: f32, _y: f32, _button: MouseButton) {}
     fn on_mouse_up(&mut self, _canvas: &Canvas, _x: f32, _y: f32, _button: MouseButton) {}
     fn on_double_click(&mut self, _canvas: &Canvas, _x: f32, _y: f32, _button: MouseButton) {}
+    fn on_wheel(&mut self, _canvas: &Canvas, _x: f32, _y: f32, _delta_y: f32) {}
     fn on_animation_frame(&mut self, _canvas: &Canvas, _elapsed: f32) {}
     fn on_key_down(&mut self, _canvas: &Canvas, _key_code: KeyCode) {}
+    fn on_key_up(&mut self, _canvas: &Canvas, _key_code: KeyCode) {}
 }
 
 /// Mouse button types
@@ -451,6 +453,30 @@ pub extern "C" fn on_key_down(canvas_id: u32, key_code: u32) {
         if let Some(mut handler) = handlers_ref.remove(&canvas_id) {
             let canvas = Canvas { id: canvas_id };
             handler.on_key_down(&canvas, KeyCode::from(key_code));
+            handlers_ref.insert(canvas_id, handler);
+        }
+    });
+}
+
+#[no_mangle]
+pub extern "C" fn on_key_up(canvas_id: u32, key_code: u32) {
+    WASM_EVENT_HANDLERS.with(|handlers| {
+        let mut handlers_ref = handlers.borrow_mut();
+        if let Some(mut handler) = handlers_ref.remove(&canvas_id) {
+            let canvas = Canvas { id: canvas_id };
+            handler.on_key_up(&canvas, KeyCode::from(key_code));
+            handlers_ref.insert(canvas_id, handler);
+        }
+    });
+}
+
+#[no_mangle]
+pub extern "C" fn on_wheel(canvas_id: u32, x: f32, y: f32, delta_y: f32) {
+    WASM_EVENT_HANDLERS.with(|handlers| {
+        let mut handlers_ref = handlers.borrow_mut();
+        if let Some(mut handler) = handlers_ref.remove(&canvas_id) {
+            let canvas = Canvas { id: canvas_id };
+            handler.on_wheel(&canvas, x, y, delta_y);
             handlers_ref.insert(canvas_id, handler);
         }
     });

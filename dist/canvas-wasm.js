@@ -13,7 +13,11 @@ export function getCanvasImports() {
                     let expo = getWasmExports();
                     expo.on_mouse_move(canvasId, event.offsetX, event.offsetY);
                 });
+                // Ensure canvas is focusable for keyboard events
+                canvas.tabIndex = 0;
                 canvas.addEventListener('mousedown', (event) => {
+                    // Focus the canvas when clicked to enable keyboard events
+                    canvas.focus();
                     // Only prevent default for middle mouse button (button 1) to stop scrolling
                     // Allow left and right clicks to focus the canvas normally
                     if (event.button === 1) {
@@ -37,15 +41,37 @@ export function getCanvasImports() {
                     let expo = getWasmExports();
                     expo.on_double_click(canvasId, event.offsetX, event.offsetY, event.button);
                 });
-                // Ensure canvas is focusable for keyboard events
-                canvas.tabIndex = 0;
+                canvas.addEventListener('wheel', (event) => {
+                    // Only handle wheel events when canvas is focused (actively clicked on)
+                    if (document.activeElement !== canvas) {
+                        return;
+                    }
+                    event.preventDefault(); // Prevent page scroll
+                    event.stopPropagation(); // Stop event bubbling
+                    let expo = getWasmExports();
+                    expo.on_wheel(canvasId, event.offsetX, event.offsetY, event.deltaY);
+                }, { passive: false }); // Explicitly set passive: false to allow preventDefault
                 canvas.addEventListener('keydown', (event) => {
                     // Only handle keydown if canvas is focused
-                    if (document.activeElement === canvas) {
-                        event.preventDefault(); // Prevent default browser behavior
-                        let expo = getWasmExports();
-                        expo.on_key_down(canvasId, getKeyCode(event.key));
+                    if (document.activeElement !== canvas) {
+                        return;
                     }
+                    event.preventDefault(); // Prevent default browser behavior
+                    let expo = getWasmExports();
+                    expo.on_key_down(canvasId, getKeyCode(event.key));
+                });
+                canvas.addEventListener('keyup', (event) => {
+                    // Only handle keyup if canvas is focused
+                    if (event.target !== canvas) {
+                        return;
+                    }
+                    event.preventDefault(); // Prevent default browser behavior
+                    let expo = getWasmExports();
+                    expo.on_key_up(canvasId, getKeyCode(event.key));
+                });
+                // Auto-focus canvas when clicked to enable keyboard events
+                canvas.addEventListener('click', () => {
+                    canvas.focus();
                 });
             },
             // --- Animation Loop ---
