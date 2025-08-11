@@ -19,7 +19,7 @@ The repository includes a complete Pong game implementation that demonstrates th
 - **Graphics**: Real-time rendering with shapes, text, and colors
 - **Game Loop**: Smooth 60fps animation with proper delta timing
 
-Try the [live demo](https://gmonteir.github.io/rust_canvas/) to see the Pong game in action!
+Try the [live demo](https://guilmont.github.io/rust_canvas/) to see the Pong game in action!
 
 ## Getting Started
 
